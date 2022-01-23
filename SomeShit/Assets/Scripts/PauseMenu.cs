@@ -2,12 +2,13 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using TMPro;
 
 public class PauseMenu : MonoBehaviour
 {
-    public GameObject Pause , canvas , Setting , PauseButton;
+    public GameObject Pause , canvas , Setting , PauseButton , TheEnd;
     public GameObject MainCamera, PauseCamera;
-
+    public TextMeshProUGUI Winner;
     
     public void Pause_EventHandler()
     {
@@ -52,6 +53,11 @@ public class PauseMenu : MonoBehaviour
     public void Restrat_EventHandler()
     {
         SceneManager.LoadScene(1);
+        Winner.text = "";
+        TheEnd.SetActive(false);
+        PlayerBehavior.TileIndex_Player2 = 0;
+        PlayerBehavior.TileIndex_Player1 = 0;
+
     }
     
 }

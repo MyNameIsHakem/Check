@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
 using UnityEngine.Events;
+using UnityEngine.UI;
 
 public class PlayerBehavior : MonoBehaviour
 {    
@@ -11,18 +12,30 @@ public class PlayerBehavior : MonoBehaviour
     [Tooltip("The Button to role the Dice")]
     public GameObject RollingButton;
     [Tooltip("The text saying that the Dice is Rolling")]
-    public TextMeshProUGUI WaitingText;
-    [Tooltip("The Number of My Actual Tile")]
-    public TextMeshProUGUI Score;
+    public TextMeshProUGUI WaitingText_Player1 , WaitingText_Player2;
+    [Tooltip("The Number of Actual Tile")]
+    public TextMeshProUGUI Score1 , Score2;
     [Tooltip("The Final Canvas To show in the end")]
     public GameObject EndDesplayer;
+    [Tooltip("The Text that displays the winner")]
+    public TextMeshProUGUI Winner;
+
+    [Header("The Players")]
+    [Space]
+    public GameObject Player1;
+    public GameObject Player2;
+
+    public static bool Player1Turn = true;
 
     //The spees of movement of the player it can be changed through setting    
     [Range(1, 10)] public static float Speed = 1;
 
-    private bool DiceRolled = false;
-    public static int TileIndex = 0;
+   
     private int DiceNumber;
+    private bool DiceRolled ;
+
+    public static int TileIndex_Player1 = 0;
+    public static int TileIndex_Player2 = 0;
 
     private float Default_Y;
     private bool Positioned = false;
@@ -31,50 +44,69 @@ public class PlayerBehavior : MonoBehaviour
 
     [Header("Events")]
     [Space]
-    public UnityEvent Event;
+    public GameObject Event;
 
     void Start()
     {       
-        transform.position = Tiles.transform.GetChild(0).position + Vector3.up * 0.4f;
+        Player1.transform.position = Tiles.transform.GetChild(0).position + Vector3.up * 0.4f;
+        Player2.transform.position = Tiles.transform.GetChild(0).position + Vector3.up * 0.4f;
 
-        Default_Y = transform.position.y;
+        DiceRolled = false;
+        Default_Y = Player1.transform.position.y;
     }
 
     void Update()
     {
-        Score.text = $"Score : {TileIndex}";
+        Score1.text = $"Score : {TileIndex_Player1}";
+        Score2.text = $"Score : {TileIndex_Player2}";
 
-        if (Input.GetButtonDown("Action") && RollingButton.activeSelf == true)
+        if (Input.GetButtonDown("Jump") && RollingButton.activeSelf == true)
         {
             RollTheDice_EventHandler();
         }
-        
+
 
         if (Input.GetButtonDown("Cancel"))
         {
-            Event.Invoke();
+            Event.GetComponent<Button>().onClick.Invoke();
         }
 
 
-        Transform Current = Tiles.transform.GetChild(TileIndex);
+        Transform CurrentTile = (Player1Turn == true) ? Tiles.transform.GetChild(TileIndex_Player1) :
+                                                                 Tiles.transform.GetChild(TileIndex_Player2);
 
-        //if the dice is rolled i can start moving
+
+        //keep in mind if something don't work change GameObject To Transform
+
+        Debug.Log("the One who is gonna move now is " + ((Player1Turn == true) ? "Player1" : "Player2"));
+
+        Transform CurrentPlayer = (Player1Turn == true) ? Player1.transform : Player2.transform;
+                
         if (DiceRolled)
-        {            
-            //I start by going up 
-            if(transform.position.y < Default_Y + 1.5f && Positioned == false)
+        {
+            Debug.Log("i will start elevating is : " + (CurrentPlayer.position.y < Default_Y + 1.5f));
+
+            if (CurrentPlayer.position.y < Default_Y + 1.5f && Positioned == false)
             {
-                transform.position += Vector3.up * Time.deltaTime * Speed;
+                CurrentPlayer.position += Vector3.up * Time.deltaTime * Speed;
             }
             else
             {
-                WaitingText.text = $"You got : +{DiceNumber}";
+                if (Player1Turn)
+                {
+                    WaitingText_Player1.text = $"You got : +{DiceNumber}";
+                }
+                else
+                {
+                    WaitingText_Player2.text = $"You got : +{DiceNumber}";
+                }
+
 
                 //Then i move forward till i arrive at The Current Tile position
 
-                if (Mathf.Abs(transform.position.z) < Mathf.Abs(Current.position.z))
+                if (Mathf.Abs(CurrentPlayer.position.z) < Mathf.Abs(CurrentTile.position.z))
                 {
-                    transform.position += Vector3.forward * Time.deltaTime * Speed;
+                    CurrentPlayer.position += Vector3.forward * Time.deltaTime * Speed;
                 }
                 else
                 {
@@ -82,16 +114,16 @@ public class PlayerBehavior : MonoBehaviour
 
                     Positioned = true;
                 }
-              
+
             }
 
             if (Positioned)
             {
                 //Here i will start landing
 
-                if(transform.position.y > Default_Y)
+                if (CurrentPlayer.position.y > Default_Y)
                 {
-                    transform.position += Vector3.down * Time.deltaTime * Speed;
+                    CurrentPlayer.position += Vector3.down * Time.deltaTime * Speed;
                 }
                 else
                 {
@@ -100,43 +132,76 @@ public class PlayerBehavior : MonoBehaviour
 
                     RollingButton.SetActive(true);
 
-                    WaitingText.enabled = false;
-                    WaitingText.text = "The Dice is Rolling ...";
+                    WaitingText_Player1.enabled = false;
+                    WaitingText_Player2.enabled = false;
+
+                    Player1Turn = !Player1Turn;
+                    Finished = true;
+
+                    WaitingText_Player1.text = "The Dice is Rolling ...";
+                    WaitingText_Player2.text = "The Dice is Rolling ...";
                 }
             }
 
         }
         else
         {
-            transform.position = Current.position + Vector3.up * 0.4f;
-            Finished = true;
-            if (TileIndex == Tiles.transform.childCount - 1)
+
+            CurrentPlayer.position = CurrentTile.position + Vector3.up * 0.4f;                    
+
+            if (TileIndex_Player1 == Tiles.transform.childCount - 1 ||
+                                                    TileIndex_Player2 == Tiles.transform.childCount - 1)
+            {
                 End = true;
+            }
+
         }
 
         if (End)
         {
             EndDesplayer.SetActive(true);
+            Winner.text = (TileIndex_Player1 == Tiles.transform.childCount - 1) ? "The Player 1 Won !" :
+                                                                        "The Player 2 Won !";
         }
     }
         
     public void RollTheDice_EventHandler()
-    { 
+    {
         DiceNumber = Random.Range(1, 7);
 
-        TileIndex += DiceNumber;
-
-        if (TileIndex >= Tiles.transform.childCount - 1)
+        if (Player1Turn)
         {
-            TileIndex = Tiles.transform.childCount - 1;            
+            TileIndex_Player1 += DiceNumber;
         }
-        
+        else
+        {
+            TileIndex_Player2 += DiceNumber;
+        }
+
+
+        if (TileIndex_Player1 >= Tiles.transform.childCount - 1)
+        {
+            TileIndex_Player1 = Tiles.transform.childCount - 1;
+        }
+        else if (TileIndex_Player2 >= Tiles.transform.childCount - 1)
+        {
+            TileIndex_Player2 = Tiles.transform.childCount - 1;
+        }
 
         DiceRolled = true;
-
+        
         RollingButton.SetActive(false);
 
-        WaitingText.enabled = true;
-      
+        if (Player1Turn)
+        {
+            WaitingText_Player1.enabled = true;
+        }
+        else
+        {
+            WaitingText_Player2.enabled = true;
+        }
+
+
+
     }
 }
